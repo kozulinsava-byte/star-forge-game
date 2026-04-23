@@ -1338,100 +1338,10 @@
   </div>
 
   <script>
-  (function() {
-    const preloaderBar = document.getElementById('preloaderBar');
-    const preloaderPercent = document.getElementById('preloaderPercent');
-    const preloaderText = document.getElementById('preloaderText');
-    const preloader = document.getElementById('preloader');
-    
-    let checkCount = 0;
-    const maxChecks = 100; // 10 секунд максимум
-    
-    function checkForConfigs() {
-      checkCount++;
-      
-      if (typeof CONFIG_ITEMS !== 'undefined' && typeof CONFIG_GEODES !== 'undefined' && typeof CONFIG_EXPEDITIONS !== 'undefined') {
-        startPreloading();
-        return;
-      }
-      
-      if (checkCount < maxChecks) {
-        // Обновляем прогресс, чтобы пользователь видел что процесс идёт
-        const fakePercent = Math.min(checkCount, 90);
-        preloaderBar.style.width = fakePercent + '%';
-        preloaderPercent.textContent = fakePercent + '%';
-        preloaderText.textContent = 'Загрузка модулей...';
-        
-        setTimeout(checkForConfigs, 100);
-      } else {
-        // Таймаут — просто скрываем прелоадер
-        preloaderText.textContent = 'Загрузка...';
-        setTimeout(() => {
-          preloader.classList.add('hidden');
-          setTimeout(() => { preloader.style.display = 'none'; }, 500);
-        }, 500);
-      }
-    }
-    
-    function startPreloading() {
-      const imagesToPreload = [];
-      
-      Object.values(CONFIG_ITEMS).forEach(item => {
-        if (item.imagePath) imagesToPreload.push(item.imagePath);
-      });
-      
-      Object.values(CONFIG_GEODES).forEach(geode => {
-        if (geode.stages) {
-          geode.stages.forEach(stage => {
-            if (stage.imagePath) imagesToPreload.push(stage.imagePath);
-          });
-        }
-      });
-      
-      Object.values(CONFIG_EXPEDITIONS).forEach(exp => {
-        if (exp.imagePath) imagesToPreload.push(exp.imagePath);
-      });
-      
-      const totalImages = imagesToPreload.length;
-      let loadedCount = 0;
-      
-      if (totalImages === 0) {
-        hidePreloader();
-        return;
-      }
-      
-      preloaderText.textContent = 'Загрузка ресурсов...';
-      
-      function updateProgress() {
-        loadedCount++;
-        const percent = Math.floor((loadedCount / totalImages) * 100);
-        preloaderBar.style.width = percent + '%';
-        preloaderPercent.textContent = percent + '%';
-        
-        if (loadedCount >= totalImages) {
-          preloaderText.textContent = 'Загрузка завершена!';
-          setTimeout(hidePreloader, 300);
-        }
-      }
-      
-      imagesToPreload.forEach(src => {
-        const img = new Image();
-        img.onload = updateProgress;
-        img.onerror = updateProgress;
-        img.src = src;
-      });
-    }
-    
-    function hidePreloader() {
-      preloader.classList.add('hidden');
-      setTimeout(() => {
-        preloader.style.display = 'none';
-      }, 500);
-    }
-    
-    // Запускаем проверку сразу
-    checkForConfigs();
-  })();
+  // Просто показываем прелоадер, скрипт загрузки в main.js
+  document.getElementById('preloaderBar').style.width = '10%';
+  document.getElementById('preloaderPercent').textContent = '10%';
+  document.getElementById('preloaderText').textContent = 'Загрузка модулей...';
 </script>
 
   <div id="app">
