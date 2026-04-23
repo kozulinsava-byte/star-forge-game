@@ -21,7 +21,7 @@ document.getElementById('showcaseOverlay').addEventListener('click', (e) => {
 });
 document.addEventListener('closeModal', closeModal);
 
-// ---------- ПРЕЛОАДЕР С ПРИНУДИТЕЛЬНЫМ РЕНДЕРИНГОМ ----------
+// ---------- ПРЕЛОАДЕР (БЫСТРЫЙ) ----------
 function startPreloader() {
     const imagesToPreload = [];
 
@@ -50,10 +50,13 @@ function startPreloader() {
     const preloaderText = document.getElementById('preloaderText');
     const preloader = document.getElementById('preloader');
 
-    // Создаём скрытый контейнер для принудительного рендеринга
-    const renderContainer = document.createElement('div');
-    renderContainer.style.cssText = 'position: fixed; left: -9999px; top: -9999px; width: 1px; height: 1px; overflow: hidden; pointer-events: none; z-index: -1;';
-    document.body.appendChild(renderContainer);
+    // Создаём скрытый контейнер для пакетного рендеринга
+    const batchContainer = document.createElement('div');
+    batchContainer.style.cssText = 'position: fixed; left: -9999px; top: -9999px; width: 1px; height: 1px; overflow: hidden; pointer-events: none; z-index: -1;';
+    document.body.appendChild(batchContainer);
+
+    // Рендерим все картинки разом через 2 секунды (когда они уже загружены)
+    let batchTimeout;
 
     function updateProgress() {
         loadedCount++;
@@ -62,12 +65,27 @@ function startPreloader() {
         preloaderPercent.textContent = percent + '%';
 
         if (loadedCount >= totalImages) {
-            preloaderText.textContent = 'Загрузка завершена!';
-            // Удаляем скрытый контейнер
-            setTimeout(() => {
-                renderContainer.remove();
+            preloaderText.textContent = 'Оптимизация...';
+
+            // Пакетный рендеринг всех картинок
+            clearTimeout(batchTimeout);
+            batchTimeout = setTimeout(() => {
+                imagesToPreload.forEach(src => {
+                    const img = document.createElement('img');
+                    img.src = src;
+                    img.style.width = '1px';
+                    img.style.height = '1px';
+                    batchContainer.appendChild(img);
+                });
+
+                // Удаляем контейнер через 2 секунды (кэш уже сохранён)
+                setTimeout(() => {
+                    batchContainer.remove();
+                }, 2000);
+
+                preloaderText.textContent = 'Загрузка завершена!';
+                setTimeout(hidePreloader, 200);
             }, 100);
-            setTimeout(hidePreloader, 300);
         }
     }
 
@@ -84,20 +102,13 @@ function startPreloader() {
     }
 
     preloaderText.textContent = 'Загрузка ресурсов...';
+    preloaderBar.style.width = '5%';
+    preloaderPercent.textContent = '5%';
 
+    // Загружаем картинки параллельно
     imagesToPreload.forEach(src => {
         const img = new Image();
         img.onload = function () {
-            // Принудительно рендерим картинку в DOM для кэширования
-            const clonedImg = this.cloneNode();
-            clonedImg.style.width = '1px';
-            clonedImg.style.height = '1px';
-            renderContainer.appendChild(clonedImg);
-            // Удаляем через секунду, кэш уже сохранён
-            setTimeout(() => {
-                if (clonedImg.parentNode) clonedImg.remove();
-            }, 1000);
-
             updateProgress();
         };
         img.onerror = function () {
@@ -112,7 +123,7 @@ function initializeApp() {
     // Запускаем прелоадер (импорты уже доступны)
     startPreloader();
 
-    // Инициализируем игру
+    // Инициализируем игру НЕМЕДЛЕННО, не ждём загрузки
     initializeState();
     startGlobalTimer();
 
