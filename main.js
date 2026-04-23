@@ -21,7 +21,7 @@ document.getElementById('showcaseOverlay').addEventListener('click', (e) => {
 });
 document.addEventListener('closeModal', closeModal);
 
-// ---------- ПРЕЛОАДЕР ----------
+// ---------- ПРЕЛОАДЕР С ПРИНУДИТЕЛЬНЫМ РЕНДЕРИНГОМ ----------
 function startPreloader() {
     const imagesToPreload = [];
 
@@ -50,6 +50,11 @@ function startPreloader() {
     const preloaderText = document.getElementById('preloaderText');
     const preloader = document.getElementById('preloader');
 
+    // Создаём скрытый контейнер для принудительного рендеринга
+    const renderContainer = document.createElement('div');
+    renderContainer.style.cssText = 'position: fixed; left: -9999px; top: -9999px; width: 1px; height: 1px; overflow: hidden; pointer-events: none; z-index: -1;';
+    document.body.appendChild(renderContainer);
+
     function updateProgress() {
         loadedCount++;
         const percent = Math.floor((loadedCount / totalImages) * 100);
@@ -58,6 +63,10 @@ function startPreloader() {
 
         if (loadedCount >= totalImages) {
             preloaderText.textContent = 'Загрузка завершена!';
+            // Удаляем скрытый контейнер
+            setTimeout(() => {
+                renderContainer.remove();
+            }, 100);
             setTimeout(hidePreloader, 300);
         }
     }
@@ -78,8 +87,22 @@ function startPreloader() {
 
     imagesToPreload.forEach(src => {
         const img = new Image();
-        img.onload = updateProgress;
-        img.onerror = updateProgress;
+        img.onload = function () {
+            // Принудительно рендерим картинку в DOM для кэширования
+            const clonedImg = this.cloneNode();
+            clonedImg.style.width = '1px';
+            clonedImg.style.height = '1px';
+            renderContainer.appendChild(clonedImg);
+            // Удаляем через секунду, кэш уже сохранён
+            setTimeout(() => {
+                if (clonedImg.parentNode) clonedImg.remove();
+            }, 1000);
+
+            updateProgress();
+        };
+        img.onerror = function () {
+            updateProgress();
+        };
         img.src = src;
     });
 }
