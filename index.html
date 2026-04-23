@@ -1263,6 +1263,103 @@
   </style>
 </head>
 <body>
+  <!-- ПРЕЛОАДЕР -->
+<div id="preloader" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0c; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s;">
+  <div style="text-align: center;">
+    <div style="font-size: 48px; margin-bottom: 20px; animation: float 2s infinite;">⛏️</div>
+    <div id="preloaderProgress" style="width: 200px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden;">
+      <div id="preloaderBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #FFD700, #FFA500); border-radius: 10px; transition: width 0.3s;"></div>
+    </div>
+    <div id="preloaderText" style="margin-top: 12px; color: rgba(255,255,255,0.6); font-size: 14px;">Загрузка ресурсов...</div>
+    <div id="preloaderPercent" style="margin-top: 4px; color: #FFD700; font-size: 18px; font-weight: 700;">0%</div>
+  </div>
+</div>
+
+<style>
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+</style>
+
+<script>
+  (function() {
+    // Собираем все картинки из CONFIG
+    const imagesToPreload = [];
+    
+    // Ждём загрузки конфига
+    function collectImages() {
+      if (typeof CONFIG_ITEMS === 'undefined' || typeof CONFIG_GEODES === 'undefined' || typeof CONFIG_EXPEDITIONS === 'undefined') {
+        setTimeout(collectImages, 50);
+        return;
+      }
+      
+      // Слитки
+      Object.values(CONFIG_ITEMS).forEach(item => {
+        if (item.imagePath) imagesToPreload.push(item.imagePath);
+      });
+      
+      // Жеоды (все стадии)
+      Object.values(CONFIG_GEODES).forEach(geode => {
+        if (geode.stages) {
+          geode.stages.forEach(stage => {
+            if (stage.imagePath) imagesToPreload.push(stage.imagePath);
+          });
+        }
+      });
+      
+      // Экспедиции
+      Object.values(CONFIG_EXPEDITIONS).forEach(exp => {
+        if (exp.imagePath) imagesToPreload.push(exp.imagePath);
+      });
+      
+      startPreloading();
+    }
+    
+    function startPreloading() {
+      const totalImages = imagesToPreload.length;
+      let loadedCount = 0;
+      const preloaderBar = document.getElementById('preloaderBar');
+      const preloaderPercent = document.getElementById('preloaderPercent');
+      const preloaderText = document.getElementById('preloaderText');
+      
+      if (totalImages === 0) {
+        hidePreloader();
+        return;
+      }
+      
+      function updateProgress() {
+        loadedCount++;
+        const percent = Math.floor((loadedCount / totalImages) * 100);
+        preloaderBar.style.width = percent + '%';
+        preloaderPercent.textContent = percent + '%';
+        
+        if (loadedCount >= totalImages) {
+          preloaderText.textContent = 'Загрузка завершена!';
+          setTimeout(hidePreloader, 300);
+        }
+      }
+      
+      imagesToPreload.forEach(src => {
+        const img = new Image();
+        img.onload = updateProgress;
+        img.onerror = updateProgress; // Даже если ошибка, считаем загруженным
+        img.src = src;
+      });
+    }
+    
+    function hidePreloader() {
+      const preloader = document.getElementById('preloader');
+      preloader.style.opacity = '0';
+      setTimeout(() => {
+        preloader.style.display = 'none';
+      }, 500);
+    }
+    
+    // Запускаем сбор картинок после загрузки конфига
+    setTimeout(collectImages, 100);
+  })();
+</script>
   <div id="app">
     <div class="toast-container" id="toastContainer"></div>
     <div id="mainContent"></div>
