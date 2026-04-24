@@ -21,72 +21,41 @@ document.getElementById('showcaseOverlay').addEventListener('click', (e) => {
 });
 document.addEventListener('closeModal', closeModal);
 
-// ---------- ПРЕЛОАДЕР (БЫСТРЫЙ) ----------
+// ---------- ASSET MANAGER (PROMISE.ALL) ----------
 function startPreloader() {
-    const imagesToPreload = [];
-
-    // Собираем все картинки из конфигов
-    Object.values(CONFIG_ITEMS).forEach(item => {
-        if (item.imagePath) imagesToPreload.push(item.imagePath);
-    });
-
-    Object.values(CONFIG_GEODES).forEach(geode => {
-        if (geode.stages) {
-            geode.stages.forEach(stage => {
-                if (stage.imagePath) imagesToPreload.push(stage.imagePath);
-            });
-        }
-    });
-
-    Object.values(CONFIG_EXPEDITIONS).forEach(exp => {
-        if (exp.imagePath) imagesToPreload.push(exp.imagePath);
-    });
-
-    const totalImages = imagesToPreload.length;
-    let loadedCount = 0;
-
     const preloaderBar = document.getElementById('preloaderBar');
     const preloaderPercent = document.getElementById('preloaderPercent');
     const preloaderText = document.getElementById('preloaderText');
     const preloader = document.getElementById('preloader');
 
-    // Создаём скрытый контейнер для пакетного рендеринга
-    const batchContainer = document.createElement('div');
-    batchContainer.style.cssText = 'position: fixed; left: -9999px; top: -9999px; width: 1px; height: 1px; overflow: hidden; pointer-events: none; z-index: -1;';
-    document.body.appendChild(batchContainer);
+    // Собираем уникальные пути
+    const assetPaths = new Set();
 
-    // Рендерим все картинки разом через 2 секунды (когда они уже загружены)
-    let batchTimeout;
+    Object.values(CONFIG_ITEMS).forEach(item => {
+        if (item.imagePath) assetPaths.add(item.imagePath);
+    });
+
+    Object.values(CONFIG_GEODES).forEach(geode => {
+        if (geode.stages) {
+            geode.stages.forEach(stage => {
+                if (stage.imagePath) assetPaths.add(stage.imagePath);
+            });
+        }
+    });
+
+    Object.values(CONFIG_EXPEDITIONS).forEach(exp => {
+        if (exp.imagePath) assetPaths.add(exp.imagePath);
+    });
+
+    const pathsArray = [...assetPaths];
+    const totalAssets = pathsArray.length;
+    let loadedCount = 0;
 
     function updateProgress() {
         loadedCount++;
-        const percent = Math.floor((loadedCount / totalImages) * 100);
+        const percent = Math.floor((loadedCount / totalAssets) * 100);
         preloaderBar.style.width = percent + '%';
         preloaderPercent.textContent = percent + '%';
-
-        if (loadedCount >= totalImages) {
-            preloaderText.textContent = 'Оптимизация...';
-
-            // Пакетный рендеринг всех картинок
-            clearTimeout(batchTimeout);
-            batchTimeout = setTimeout(() => {
-                imagesToPreload.forEach(src => {
-                    const img = document.createElement('img');
-                    img.src = src;
-                    img.style.width = '1px';
-                    img.style.height = '1px';
-                    batchContainer.appendChild(img);
-                });
-
-                // Удаляем контейнер через 2 секунды (кэш уже сохранён)
-                setTimeout(() => {
-                    batchContainer.remove();
-                }, 2000);
-
-                preloaderText.textContent = 'Загрузка завершена!';
-                setTimeout(hidePreloader, 200);
-            }, 100);
-        }
     }
 
     function hidePreloader() {
@@ -96,34 +65,59 @@ function startPreloader() {
         }, 500);
     }
 
-    if (totalImages === 0) {
+    if (totalAssets === 0) {
         hidePreloader();
         return;
     }
 
     preloaderText.textContent = 'Загрузка ресурсов...';
-    preloaderBar.style.width = '5%';
-    preloaderPercent.textContent = '5%';
 
-    // Загружаем картинки параллельно
-    imagesToPreload.forEach(src => {
-        const img = new Image();
-        img.onload = function () {
-            updateProgress();
-        };
-        img.onerror = function () {
-            updateProgress();
-        };
-        img.src = src;
+    // Загружаем ВСЕ картинки параллельно через Promise.all
+    const loadPromises = pathsArray.map(src => {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                updateProgress();
+                resolve({ src, success: true });
+            };
+            img.onerror = () => {
+                updateProgress();
+                console.warn('Asset not found:', src);
+                resolve({ src, success: false });
+            };
+            img.src = src;
+        });
+    });
+
+    Promise.all(loadPromises).then((results) => {
+        // Предкэширование: вставляем загруженные картинки в DOM
+        const cacheContainer = document.createElement('div');
+        cacheContainer.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;';
+        results.forEach(({ src, success }) => {
+            if (success) {
+                const img = document.createElement('img');
+                img.src = src;
+                cacheContainer.appendChild(img);
+            }
+        });
+        document.body.appendChild(cacheContainer);
+
+        preloaderText.textContent = 'Запуск...';
+
+        // Удаляем кэш-контейнер через 2 секунды
+        setTimeout(() => {
+            cacheContainer.remove();
+        }, 2000);
+
+        // Запускаем игру
+        setTimeout(() => {
+            initializeGame();
+            hidePreloader();
+        }, 100);
     });
 }
 
-// Запуск приложения
-function initializeApp() {
-    // Запускаем прелоадер (импорты уже доступны)
-    startPreloader();
-
-    // Инициализируем игру НЕМЕДЛЕННО, не ждём загрузки
+function initializeGame() {
     initializeState();
     startGlobalTimer();
 
@@ -134,8 +128,9 @@ function initializeApp() {
     setActiveTab('expeditions');
 }
 
+// Запуск
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeApp);
+    document.addEventListener('DOMContentLoaded', startPreloader);
 } else {
-    initializeApp();
+    startPreloader();
 }

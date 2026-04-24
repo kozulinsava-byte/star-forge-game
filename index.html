@@ -104,7 +104,7 @@
       backdrop-filter: blur(10px);
     }
 
-    /* ---------- ПРЕЛОАДЕР (ВСЕГДА ПОКАЗЫВАЕТСЯ) ---------- */
+    /* ---------- ПРЕЛОАДЕР ---------- */
     #preloader {
       position: fixed;
       top: 0;
@@ -127,6 +127,7 @@
 
     .preloader-content {
       text-align: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
 
     .preloader-icon {
@@ -155,6 +156,7 @@
       margin-top: 12px;
       color: rgba(255, 255, 255, 0.6);
       font-size: 14px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
 
     .preloader-percent {
@@ -162,6 +164,7 @@
       color: #FFD700;
       font-size: 18px;
       font-weight: 700;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
 
     @keyframes float {
@@ -1325,24 +1328,17 @@
   </style>
 </head>
 <body>
-  <!-- ПРЕЛОАДЕР (ВСЕГДА ПОКАЗЫВАЕТСЯ) -->
+  <!-- ПРЕЛОАДЕР -->
   <div id="preloader">
     <div class="preloader-content">
       <div class="preloader-icon">⛏️</div>
       <div class="preloader-progress">
         <div id="preloaderBar" class="preloader-bar" style="width: 0%;"></div>
       </div>
-      <div id="preloaderText" class="preloader-text">Загрузка ресурсов...</div>
+      <div id="preloaderText" class="preloader-text">Загрузка...</div>
       <div id="preloaderPercent" class="preloader-percent">0%</div>
     </div>
   </div>
-
-  <script>
-  // Просто показываем прелоадер, скрипт загрузки в main.js
-  document.getElementById('preloaderBar').style.width = '10%';
-  document.getElementById('preloaderPercent').textContent = '10%';
-  document.getElementById('preloaderText').textContent = 'Загрузка модулей...';
-</script>
 
   <div id="app">
     <div class="toast-container" id="toastContainer"></div>
